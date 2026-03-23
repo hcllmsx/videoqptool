@@ -30,7 +30,7 @@ npm start
 
 浏览器打开 `http://localhost:13838` 即可使用。
 
-## 打包为 EXE
+## 自行打包为 exe
 
 ```bash
 # 安装依赖（含 pkg）
@@ -40,14 +40,14 @@ npm install
 npm run build
 ```
 
-生成的文件在 `dist/videoqptool.exe`。
+生成的文件在 `dist/videoqptool-v版本号.exe`。
 
 ### 使用打包后的 EXE
 
 将以下文件放在同一目录下即可双击运行：
 
 ```
-videoqptool.exe
+videoqptool-v版本号.exe
 ffmpeg.exe          # 或放在 ffmpeg/ 或 ffmpeg/bin/ 子目录下
 ```
 
@@ -68,14 +68,18 @@ videoqptool/
 └── package.json
 ```
 
-## License
-
-MIT
-
 ## 致谢
 
 logo图像来源于[Icon-Icons](https://icon-icons.com/icon/slow-motion-video/117417)
+
 音频素材来源于 [Freesound: RICHERlandTV](https://freesound.org/people/RICHERlandTV/)
+
 音频素材来源于 [Freesound: Kenneth_Cooney](https://freesound.org/people/Kenneth_Cooney/)
+
 音频素材来源于 [Freesound: Abacagi](https://freesound.org/people/Abacagi/)
+
 音频素材来源于 [Freesound: elisfir](https://freesound.org/people/elisfir/)
+
+## License
+
+MIT

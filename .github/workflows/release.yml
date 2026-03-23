@@ -34,5 +34,5 @@ jobs:
           name: Release ${{ github.ref_name }}
           draft: false
           prerelease: false
-          files: ./dist/VideoQPTool.exe
+          files: ./dist/VideoQPTool-*.exe
           fail_on_unmatched_files: true

@@ -20,19 +20,23 @@ async function build() {
             if (typeof rcedit !== 'function') {
                 console.error('❌ rcedit 不是一个函数:', typeof rcedit);
                 console.log('⚠️ 将退回无图标模式编译...');
-                execSync('npx pkg . --targets node18-win-x64 --output dist/VideoQPTool.exe', { stdio: 'inherit' });
+                execSync(`npx pkg . --targets node18-win-x64 --output ${outputExePath}`, { stdio: 'inherit' });
                 return;
             }
         } catch (importErr) {
             console.error('❌ 导入 rcedit 模块失败:', importErr);
             console.log('⚠️ 将退回无图标模式编译...');
-            execSync('npx pkg . --targets node18-win-x64 --output dist/VideoQPTool.exe', { stdio: 'inherit' });
+            execSync(`npx pkg . --targets node18-win-x64 --output ${outputExePath}`, { stdio: 'inherit' });
             return;
         }
+        const pkgInfo = require('./package.json');
+        const outputExeName = `VideoQPTool-v${pkgInfo.version}.exe`;
+        const outputExePath = `dist/${outputExeName}`;
+        
         if (!fs.existsSync(iconPath)) {
             console.warn(`⚠️ 未找到自定义图标 ${iconPath}，将使用 Node 默认图标打包！`);
             console.log('✅ 直接执行 pkg...');
-            execSync('npx pkg . --targets node18-win-x64 --output dist/VideoQPTool.exe', { stdio: 'inherit' });
+            execSync(`npx pkg . --targets node18-win-x64 --output ${outputExePath}`, { stdio: 'inherit' });
             console.log('🎉 打包完成！');
             return;
         }
@@ -48,7 +52,7 @@ async function build() {
         // pkg 会默认保存包体到 ~/.pkg-cache 目录下
         if (!fs.existsSync(globalCacheDir)) {
             console.log('🔧 正在检查/拉取 Node 基础构建资源，请稍等...');
-            execSync('npx pkg . --targets node18-win-x64 --output dist/VideoQPTool.exe', { stdio: 'inherit' });
+            execSync(`npx pkg . --targets node18-win-x64 --output ${outputExePath}`, { stdio: 'inherit' });
         }
 
         // 2. 找到我们刚确切拉取的基础环境版本文件名
@@ -74,7 +78,7 @@ async function build() {
 
         if (!cacheVersionDir || !targetExeName) {
             console.warn('⚠️ 核心基础环境缓存寻找失败，可能 pkg 目录结构有变，回退到默认无图标打包模式。');
-            execSync('npx pkg . --targets node18-win-x64 --output dist/VideoQPTool.exe', { stdio: 'inherit' });
+            execSync(`npx pkg . --targets node18-win-x64 --output ${outputExePath}`, { stdio: 'inherit' });
             return;
         }
 
@@ -119,19 +123,19 @@ async function build() {
         } catch (rceditErr) {
             console.error('❌ 在为基础环境注入图标时失败:', rceditErr);
             console.log('⚠️ 将退回无图标模式编译...');
-            execSync('npx pkg . --targets node18-win-x64 --output dist/VideoQPTool.exe', { stdio: 'inherit' });
+            execSync(`npx pkg . --targets node18-win-x64 --output ${outputExePath}`, { stdio: 'inherit' });
             return;
         }
 
         // 5. 使用 PKG_CACHE_PATH 环境变量覆盖，让 pkg 读取我们“已修饰过图标”的基础文件来混合你的 server 代码！
         console.log('✅ 开始带有图标的业务混入最终打包 (过程略久，请等待)...');
-        execSync('npx pkg . --targets node18-win-x64 --output dist/VideoQPTool.exe', {
+        execSync(`npx pkg . --targets node18-win-x64 --output ${outputExePath}`, {
             stdio: 'inherit',
             env: { ...process.env, PKG_CACHE_PATH: localCacheDir }
         });
 
         console.log('');
-        console.log('🎉🎉 带有全新图标的 exe 完美混淆构建成功！快回到桌面双击运行 dist/VideoQPTool.exe 吧！🎉🎉');
+        console.log(`🎉🎉 带有全新图标的 exe 完美混淆构建成功！快回到桌面双击运行 ${outputExePath} 吧！🎉🎉`);
 
     } catch (err) {
         console.error('❌ 打包过程中出现整体级错误:', err);

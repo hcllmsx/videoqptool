@@ -1,8 +1,9 @@
 const { execSync } = require('child_process');
-const { rcedit } = require('rcedit');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
+
+let rcedit;
 
 const baseDir = __dirname;
 const iconPath = path.join(baseDir, 'videoqptool.ico');
@@ -12,6 +13,22 @@ const localCacheDir = path.join(baseDir, '.pkg-cache');
 async function build() {
     console.log('🚀 准备打包 exe...');
     try {
+        // 动态导入 rcedit 模块
+        try {
+            const rceditModule = await import('rcedit');
+            rcedit = rceditModule.rcedit || rceditModule.default || rceditModule;
+            if (typeof rcedit !== 'function') {
+                console.error('❌ rcedit 不是一个函数:', typeof rcedit);
+                console.log('⚠️ 将退回无图标模式编译...');
+                execSync('npx pkg . --targets node18-win-x64 --output dist/VideoQPTool.exe', { stdio: 'inherit' });
+                return;
+            }
+        } catch (importErr) {
+            console.error('❌ 导入 rcedit 模块失败:', importErr);
+            console.log('⚠️ 将退回无图标模式编译...');
+            execSync('npx pkg . --targets node18-win-x64 --output dist/VideoQPTool.exe', { stdio: 'inherit' });
+            return;
+        }
         if (!fs.existsSync(iconPath)) {
             console.warn(`⚠️ 未找到自定义图标 ${iconPath}，将使用 Node 默认图标打包！`);
             console.log('✅ 直接执行 pkg...');

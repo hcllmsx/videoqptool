@@ -98,6 +98,12 @@ async function build() {
         // 4. 对项目这个“纯血”未使用过的基础环境进行修改图标
         try {
             const pkgInfo = require('./package.json');
+            console.log('📋 调试信息:');
+            console.log('  - localExePath:', localExePath);
+            console.log('  - iconPath:', iconPath);
+            console.log('  - localExePath 存在:', fs.existsSync(localExePath));
+            console.log('  - iconPath 存在:', fs.existsSync(iconPath));
+            
             await rcedit(localExePath, {
                 icon: iconPath,
                 'file-version': pkgInfo.version,

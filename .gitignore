@@ -1,0 +1,6 @@
+*.log
+.pkg-cache/
+dist/
+node_modules/
+output/
+uploads/

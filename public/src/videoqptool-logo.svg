@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="_图层_1" data-name="图层_1" xmlns="http://www.w3.org/2000/svg" baseProfile="tiny" version="1.2" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 20.1 20.1">
+  <!-- Generator: Adobe Illustrator 30.2.1, SVG Export Plug-In . SVG Version: 2.1.1 Build 1)  -->
+  <defs>
+    <linearGradient id="_未命名的渐变_36" data-name="未命名的渐变 36" x1="0" y1="10.1" x2="20" y2="10.1" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#3fbff0"/>
+      <stop offset=".5" stop-color="#00a1e9"/>
+      <stop offset="1" stop-color="#008dd7"/>
+    </linearGradient>
+  </defs>
+  <path id="videoqptool" d="M2.3,16.4l1.4-1.4c-.9-1.1-1.4-2.4-1.6-3.9H0c.2,2,1,3.8,2.2,5.3ZM5.1,3.8c1.1-.9,2.4-1.4,3.9-1.6V.1c-2,.2-3.8,1-5.3,2.2l1.4,1.4ZM0,9.1h2c.2-1.5.8-2.8,1.6-3.9l-1.4-1.4C1.1,5.2.3,7.1,0,9.1ZM11.1.1v2c3.9.5,6.9,3.9,6.9,7.9s-3,7.4-6.9,7.9v2c5-.5,8.9-4.8,8.9-10S16.1.6,11.1.1ZM14,10.1l-2.9-2.2-3.1-2.3v9l3.1-2.3,2.9-2.2ZM3.7,17.8c1.5,1.2,3.3,2,5.3,2.2v-2c-1.5-.2-2.8-.8-3.9-1.6l-1.4,1.4Z" fill="url(#_未命名的渐变_36)" fill-rule="evenodd"/>
+</svg>

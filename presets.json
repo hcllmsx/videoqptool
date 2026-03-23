@@ -1,0 +1,48 @@
+{
+  "CPU编码-h264-crf28-25fps-medium": {
+    "videoCodec": "libx264",
+    "audioCodec": "aac",
+    "resolution": "original",
+    "framerate": "25",
+    "preset": "medium",
+    "hlsSegmentType": "mpegts",
+    "hlsSliceMode": "time",
+    "hlsTime": 10,
+    "hlsSize": 10,
+    "videoBitrate": "",
+    "audioBitrate": "original",
+    "audioSampleRate": "original",
+    "quality": 28
+  },
+  "N卡编码-h264-cq30-25fps-p7": {
+    "videoCodec": "h264_nvenc",
+    "audioCodec": "aac",
+    "resolution": "original",
+    "framerate": "25",
+    "preset": "p7",
+    "hlsSegmentType": "mpegts",
+    "hlsSliceMode": "time",
+    "hlsTime": 10,
+    "hlsSize": 10,
+    "videoBitrate": "",
+    "audioBitrate": "128k",
+    "audioSampleRate": "44100",
+    "quality": 30
+  },
+  "N卡编码-h264-fmp4-cq30-25fps-p7": {
+    "videoCodec": "h264_nvenc",
+    "audioCodec": "aac",
+    "resolution": "original",
+    "framerate": "25",
+    "preset": "p7",
+    "hlsSegmentType": "fmp4",
+    "hlsSliceMode": "time",
+    "hlsTime": 10,
+    "hlsSize": 10,
+    "videoBitrate": "",
+    "audioBitrate": "128k",
+    "audioSampleRate": "44100",
+    "quality": 30
+  }
+
+}

@@ -1,0 +1,29 @@
+{
+  "name": "videoqptool",
+  "version": "1.3.23",
+  "description": "视频转HLS(m3u8+ts)工具 - 使用本地ffmpeg进行视频转换",
+  "main": "server.js",
+  "bin": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "build": "node build.js"
+  },
+  "pkg": {
+    "assets": [
+      "public/**/*"
+    ],
+    "outputPath": "dist"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "multer": "^1.4.5-lts.1",
+    "uuid": "^9.0.0"
+  },
+  "devDependencies": {
+    "pkg": "^5.8.1",
+    "rcedit": "^5.0.2"
+  },
+  "author": "hcllmsx",
+  "license": "MIT"
+}

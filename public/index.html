@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VideoQPTool - 视频转HLS工具</title>
+    <meta name="description" content="使用本地ffmpeg将视频转换为m3u8+ts格式的HLS流媒体工具">
+    <link rel="icon" type="image/svg+xml" href="src/videoqptool-logo.svg">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+    <!-- 顶部导航 -->
+    <header class="header">
+        <div class="header-content">
+            <a href="https://github.com/hcllmsx/videoqptool" target="_blank" class="header-brand">
+                <div class="logo-icon">
+                    <img src="src/videoqptool-logo.svg" alt="logo">
+                </div>
+                <h1>VideoQPTool</h1>
+                <span class="version-badge">v<span>1.3.23</span></span>
+            </a>
+            <div class="header-status" id="ffmpegStatus">
+                <span class="status-dot"></span>
+                <span class="status-text">检测中...</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="main-container">
+        <!-- 左侧：转换设置 -->
+        <aside class="sidebar">
+            <section class="card settings-card">
+                <h2 class="card-title" style="display: flex; justify-content: space-between; align-items: center;">
+                    <div style="display: flex; align-items: center;">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="icon"
+                            style="margin-right: 0.5rem;">
+                            <circle cx="12" cy="12" r="3"></circle>
+                            <path
+                                d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z">
+                            </path>
+                        </svg>
+                        转换设置
+                    </div>
+                    <button class="preset-btn" id="resetSettingsBtn" title="恢复默认设置"
+                        style="display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; padding: 0; background: transparent; border: 1px solid var(--border); border-radius: 4px; color: var(--text-muted); cursor: pointer;">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14"
+                            height="14">
+                            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
+                            <polyline points="3 3 3 8 8 8"></polyline>
+                        </svg>
+                    </button>
+                </h2>
+                <!-- 预设管理 -->
+                <div class="preset-section">
+                    <div class="preset-row">
+                        <select id="presetSelect" class="setting-select preset-select">
+                            <option value="">-- 预设为空 --</option>
+                        </select>
+                        <button class="preset-btn" id="deletePresetBtn" title="删除当前预设">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14"
+                                height="14">
+                                <polyline points="3 6 5 6 21 6"></polyline>
+                                <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2">
+                                </path>
+                            </svg>
+                            删除
+                        </button>
+                    </div>
+                    <div class="preset-save-row">
+                        <input type="text" id="presetNameInput" class="setting-input preset-name-input"
+                            placeholder="输入预设名称...">
+                        <button class="preset-btn preset-save-btn" id="savePresetBtn" title="保存为预设">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14"
+                                height="14">
+                                <path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"></path>
+                                <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                                <polyline points="7 3 7 8 15 8"></polyline>
+                            </svg>
+                            保存
+                        </button>
+                    </div>
+                </div>
+                <!-- 视频设置 -->
+                <div class="settings-section">
+                    <h3 class="settings-section-title">🎬 视频</h3>
+                    <div class="settings-grid">
+                        <div class="setting-group" data-tip="&quot;保持原始&quot;不重编码，无法调整画质">
+                            <label class="setting-label">视频编码</label>
+                            <select id="videoCodec" class="setting-select">
+                                <option value="copy" selected>保持原始 (最快速度)</option>
+                                <optgroup label="CPU 软件编码">
+                                    <option value="libx264">H.264 (兼容性最好)</option>
+                                    <option value="libx265">H.265 / HEVC (更小体积)</option>
+                                </optgroup>
+                                <optgroup label="NVIDIA 硬件加速">
+                                    <option value="h264_nvenc">H.264 NVENC</option>
+                                    <option value="hevc_nvenc">H.265 NVENC</option>
+                                </optgroup>
+                                <optgroup label="Intel 硬件加速">
+                                    <option value="h264_qsv">H.264 QSV</option>
+                                    <option value="hevc_qsv">H.265 QSV</option>
+                                </optgroup>
+                                <optgroup label="AMD 硬件加速">
+                                    <option value="h264_amf">H.264 AMF</option>
+                                    <option value="hevc_amf">H.265 AMF</option>
+                                </optgroup>
+                            </select>
+                        </div>
+                        <div class="setting-group" data-tip="降低分辨率可减小文件体积">
+                            <label class="setting-label">分辨率</label>
+                            <select id="resolution" class="setting-select">
+                                <option value="original" selected>保持原始</option>
+                                <option value="1080p">1080p (1920×1080)</option>
+                                <option value="720p">720p (1280×720)</option>
+                            </select>
+                        </div>
+                        <div class="setting-group" data-tip="降低帧率可减小文件体积">
+                            <label class="setting-label">帧率</label>
+                            <select id="framerate" class="setting-select">
+                                <option value="original" selected>保持原始</option>
+                                <option value="60">60 fps</option>
+                                <option value="50">50 fps</option>
+                                <option value="30">30 fps</option>
+                                <option value="25">25 fps</option>
+                                <option value="24">24 fps</option>
+                            </select>
+                        </div>
+                        <div class="setting-group" data-tip="较慢的预设能保留更多画面细节（如纹理和噪点），但会显著增加转换耗时。极快预设可能会平滑画面从而减小体积。">
+                            <label class="setting-label">编码预设</label>
+                            <select id="preset" class="setting-select">
+                                <option value="ultrafast">ultrafast(极快)</option>
+                                <option value="fast">fast(快速)</option>
+                                <option value="medium" selected>medium(中等)</option>
+                                <option value="slow">slow(慢速)</option>
+                                <option value="veryslow">veryslow(极慢)</option>
+                            </select>
+                        </div>
+                        <div class="setting-group" id="qualityGroup"
+                            data-tip="数值越小画质越高、文件越大；数值越大画质越低、文件越小。建议根据实际效果自行测试调整。">
+                            <label class="setting-label">
+                                <span id="qualityLabel">CRF 质量</span>
+                                <span class="setting-hint" id="crfValue">23</span>
+                            </label>
+                            <input type="range" id="crf" class="setting-range" min="15" max="42" value="23">
+                            <div class="range-labels" id="qualityRangeLabels">
+                                <span>15 高质量</span>
+                                <span>低质量 42</span>
+                            </div>
+                        </div>
+                        <div class="setting-group" id="bitrateGroup" data-tip="手动指定会覆盖 质量控制，一般留空">
+                            <label class="setting-label">视频码率 (可选)</label>
+                            <input type="text" id="videoBitrate" class="setting-input"
+                                placeholder="例: 2000k, 5M (留空自动)">
+                        </div>
+                    </div>
+                </div>
+                <!-- 音频设置 -->
+                <div class="settings-section">
+                    <h3 class="settings-section-title">🔊 音频</h3>
+                    <div class="settings-grid">
+                        <div class="setting-group" data-tip="AAC 兼容性最好">
+                            <label class="setting-label">音频编码</label>
+                            <select id="audioCodec" class="setting-select">
+                                <option value="aac" selected>AAC</option>
+                                <option value="copy">保持原始</option>
+                            </select>
+                        </div>
+                        <div class="setting-group" data-tip="一般保持原始即可">
+                            <label class="setting-label">采样率</label>
+                            <select id="audioSampleRate" class="setting-select">
+                                <option value="original" selected>保持原始</option>
+                                <option value="48000">48000 Hz</option>
+                                <option value="44100">44100 Hz</option>
+
+                            </select>
+                        </div>
+                        <div class="setting-group" data-tip="一般保持原始即可，重编码时可指定码率">
+                            <label class="setting-label">音频码率</label>
+                            <select id="audioBitrate" class="setting-select">
+                                <option value="original" selected>保持原始</option>
+                                <option value="128k">128 kbps</option>
+                                <option value="320k">320 kbps</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <!-- HLS 设置 -->
+                <div class="settings-section">
+                    <h3 class="settings-section-title">📦 HLS 分片</h3>
+                    <div class="settings-grid">
+                        <div class="setting-group" data-tip="可选传统的 mpegts (.ts) 或更现代的 fmp4 (.m4s)">
+                            <label class="setting-label">切片格式</label>
+                            <select id="hlsSegmentType" class="setting-select">
+                                <option value="mpegts" selected>MPEG-TS (.ts)</option>
+                                <option value="fmp4">fMP4 (.m4s)</option>
+                            </select>
+                        </div>
+                        <div class="setting-group" data-tip="可选择按固定时长切片或按尽可能的近似大小切片">
+                            <label class="setting-label">切片方式</label>
+                            <select id="hlsSliceMode" class="setting-select">
+                                <option value="time" selected>按时长切片</option>
+                                <option value="size">按大小切片</option>
+                            </select>
+                        </div>
+                        <div class="setting-group" id="hlsTimeGroup" data-tip="较短利于快速起播，较长减少文件数">
+                            <label class="setting-label">
+                                TS 分片时长 (约)
+                                <span class="setting-hint" id="hlsTimeValue">约 10 秒</span>
+                            </label>
+                            <input type="range" id="hlsTime" class="setting-range" min="2" max="30" value="10">
+                            <div class="range-labels">
+                                <span>2s</span>
+                                <span>30s</span>
+                            </div>
+                        </div>
+                        <div class="setting-group hidden" id="hlsSizeGroup" data-tip="基于码率推算的近似大小，并不是绝对精准的单文件大小">
+                            <label class="setting-label">
+                                期望单片大小 (约)
+                                <span class="setting-hint" id="hlsSizeValue">约 10 MB</span>
+                            </label>
+                            <input type="range" id="hlsSize" class="setting-range" min="1" max="50" value="10">
+                            <div class="range-labels">
+                                <span>1MB</span>
+                                <span>50MB</span>
+                            </div>
+                        </div>
+                        <div class="setting-group" data-tip="强制转为yuv420p、High/4.1、对齐关键帧以支持苹果设备硬解播放">
+                            <label class="setting-label">Apple 设备兼容</label>
+                            <select id="appleCompatible" class="setting-select">
+                                <option value="true" selected>开启 (推荐)</option>
+                                <option value="false">关闭</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <button class="btn btn-primary" id="convertBtn" disabled>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="icon">
+                        <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                    </svg>
+                    开始转换
+                </button>
+            </section>
+        </aside>
+
+        <!-- 右侧：上传 + 任务 -->
+        <div class="content-wrapper">
+            <div class="content">
+                <section class="card upload-card">
+                    <h2 class="card-title">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="icon">
+                            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"></path>
+                            <polyline points="17 8 12 3 7 8"></polyline>
+                            <line x1="12" y1="3" x2="12" y2="15"></line>
+                        </svg>
+                        上传视频
+                    </h2>
+                    <div class="upload-zone" id="uploadZone">
+                        <div class="upload-zone-content">
+                            <div class="upload-main">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
+                                    class="upload-icon">
+                                    <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"></path>
+                                    <polyline points="17 8 12 3 7 8"></polyline>
+                                    <line x1="12" y1="3" x2="12" y2="15"></line>
+                                </svg>
+                                <div class="upload-text-group">
+                                    <p class="upload-text">拖放视频文件到此处</p>
+                                    <p class="upload-hint">或点击选择文件</p>
+                                    <p class="upload-formats">支持 MP4 / MKV / AVI / MOV / FLV / WMV / WebM / TS / M4V /
+                                        3GP 等</p>
+                                </div>
+                            </div>
+                        </div>
+                        <input type="file" id="fileInput" accept="video/*" multiple hidden>
+                    </div>
+                    <div class="upload-progress hidden" id="uploadProgress">
+                        <div class="file-info">
+                            <span class="file-name" id="uploadFileName">-</span>
+                            <span class="file-size" id="uploadFileSize">-</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="uploadProgressFill"></div>
+                        </div>
+                        <span class="progress-percent" id="uploadPercent">0%</span>
+                    </div>
+
+                    <div class="local-files-wrapper">
+                        <div class="setting-group local-files-group">
+                            <label class="setting-label local-files-label">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16"
+                                    height="16">
+                                    <path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z">
+                                    </path>
+                                </svg>
+                                或选择 uploads/ 目录中已有的文件
+                                <select id="localFilesSelect" class="setting-select local-files-select">
+                                    <option value="">加载中...</option>
+                                </select>
+                                <button id="refreshLocalFilesBtn" class="refresh-btn" title="刷新列表">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                        width="14" height="14">
+                                        <polyline points="23 4 23 10 17 10"></polyline>
+                                        <polyline points="1 20 1 14 7 14"></polyline>
+                                        <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15">
+                                        </path>
+                                    </svg>
+                                </button>
+                            </label>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="card tasks-card">
+                    <h2 class="card-title" style="display: flex; justify-content: space-between; align-items: center;">
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="icon"
+                                style="margin-right: 0px;">
+                                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+                            </svg>
+                            任务列表
+                            <span class="task-count" id="taskCount">0</span>
+                        </div>
+                        <div class="task-global-settings"
+                            style="font-size: 0.85rem; font-weight: normal; display: flex; gap: 1rem; align-items: center; margin-left: auto;">
+                            <button class="preset-btn" id="clearCompletedBtn" onclick="App.clearCompletedTasks()"
+                                title="清除已完成和失败的任务记录">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13"
+                                    height="13">
+                                    <polyline points="3 6 5 6 21 6"></polyline>
+                                    <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2">
+                                    </path>
+                                </svg>
+                                清除已完成
+                            </button>
+                            <label style="display: flex; align-items: center; gap: 4px; cursor: pointer;">
+                                <input type="checkbox" id="autoShutdown" style="accent-color: var(--primary);">
+                                完成后关机且输出日志
+                            </label>
+                            <!-- 确保服务端能够通过 outputLog 拿到底层数据，这里隐藏一个真正的 outputLog 供 JS 使用（如果必要）或直接修改 JS -->
+                        </div>
+                    </h2>
+                    <div class="tasks-list" id="tasksList">
+                        <div class="empty-state" id="emptyState">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"
+                                class="empty-icon">
+                                <rect x="2" y="2" width="20" height="20" rx="2.5"></rect>
+                                <path d="M16 11.37A4 4 0 1112.63 8 4 4 0 0116 11.37z"></path>
+                                <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
+                            </svg>
+                            <p>暂无转换任务</p>
+                            <p class="empty-hint">上传视频文件开始转换</p>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </main>
+
+    <!-- Toast 通知 -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- 页脚 -->
+    <footer class="footer">
+        <a href="https://github.com/hcllmsx/videoqptool" target="_blank">
+            <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16">
+                <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+            </svg>
+            GitHub
+        </a>
+    </footer>
+
+    <script src="js/app.js"></script>
+</body>
+
+</html>

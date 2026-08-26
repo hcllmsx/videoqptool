@@ -12,59 +12,76 @@ videoqptool（视频切片工具）是一个视频转 HLS 的工具，支持 H.2
 - 实时显示转换进度
 - 支持中文文件名
 
-## 环境要求
+## 使用打包好的桌面应用（推荐）
 
+项目打包为 Electron 桌面应用。
+
+### 安装版
+
+运行 `dist-electron/VideoQPTool-安装版-v版本号-Setup.exe`，按向导安装，可自选安装目录、创建桌面快捷方式。
+
+### 便携版
+
+运行 `dist-electron/VideoQPTool-便携版-v版本号.exe`，单个 exe 双击即用，无需安装。
+
+注意事项：
+
+- 数据目录（`uploads`、`output`、`presets.json`）：
+  - 便携版：保存在 exe 同目录下，随 exe 整体携带，拷贝/迁移时复制整个文件夹即可
+  - 安装版：保存在安装目录（exe 同目录）下；若安装到系统保护目录（如 `C:\Program Files`）导致不可写，会自动回退到用户目录 `%APPDATA%\videoqptool`
+  - 提示：卸载安装版时安装目录会被删除，其中的数据也会一并删除，请注意备份
+- 退出程序：点击页面右上角「退出程序」按钮，或直接关闭窗口
+- 若启动失败（如端口被占用），会弹出系统错误提示框
+- ffmpeg 查找顺序：程序资源目录 → 数据目录 `ffmpeg\bin` → 系统 PATH
+
+## 开发模式运行
+
+环境要求：
 
 - [Node.js](https://nodejs.org/) 18+
 - [FFmpeg](https://ffmpeg.org/download.html)（放在项目同目录，或已添加到系统 PATH），推荐去 [gyan.dev](https://www.gyan.dev/ffmpeg/builds/) 或者 [FFmpeg-Builds](https://github.com/BtbN/FFmpeg-Builds/releases) 下载最新版本
-
-## 使用方法
 
 ```bash
 # 安装依赖
 npm install
 
-# 启动服务
+# 直接以服务方式运行（浏览器打开 http://localhost:13838 使用）
 npm start
+
+# 或 Electron 桌面模式开发
+npm run dev
 ```
 
-浏览器打开 `http://localhost:13838` 即可使用。
-
-## 自行打包为 exe
+## 自行打包
 
 ```bash
-# 安装依赖（含 pkg）
 npm install
 
-# 打包
+# 打包（同时产出安装版 + 便携版）
 npm run build
 ```
 
-生成的文件在 `dist/videoqptool-v版本号.exe`。
+产物生成在 `dist-electron/` 目录：
 
-### 使用打包后的 EXE
-
-将以下文件放在同一目录下即可双击运行：
-
-```
-videoqptool-v版本号.exe
-ffmpeg.exe          # 或放在 ffmpeg/ 或 ffmpeg/bin/ 子目录下
-```
-
-程序启动后会自动打印访问地址，默认 `http://localhost:13838`。
+| 产物 | 说明 |
+| --- | --- |
+| `VideoQPTool-安装版-v版本号-Setup.exe` | 安装版（向导安装，可自选目录、创建快捷方式） |
+| `VideoQPTool-便携版-v版本号.exe` | 便携版（单个 exe，双击即用，无需安装） |
 
 ## 项目结构
 
 ```
 videoqptool/
+├── electron-main.js   # Electron 桌面壳主进程
 ├── server.js          # 后端服务（Express + FFmpeg 调用）
 ├── public/
 │   ├── index.html     # 页面
 │   ├── css/style.css  # 样式
 │   ├── js/app.js      # 前端逻辑
 │   └── src/           # 图标和音频等资源
-├── uploads/           # 上传的临时文件
-├── output/            # 转换输出目录
+├── uploads/           # 上传的临时文件（开发模式）
+├── output/            # 转换输出目录（开发模式）
+├── dist-electron/     # Electron 版打包产物
 └── package.json
 ```
 

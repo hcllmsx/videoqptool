@@ -1,19 +1,49 @@
 {
   "name": "videoqptool",
-  "version": "1.3.23",
+  "version": "26.8.26",
   "description": "视频转HLS(m3u8+ts)工具 - 使用本地ffmpeg进行视频转换",
-  "main": "server.js",
-  "bin": "server.js",
+  "main": "electron-main.js",
   "scripts": {
+    "prebuild": "node scripts/sync-version.js",
     "start": "node server.js",
-    "dev": "node server.js",
-    "build": "node build.js"
+    "dev": "electron .",
+    "build": "electron-builder --win nsis portable"
   },
-  "pkg": {
-    "assets": [
-      "public/**/*"
+  "build": {
+    "appId": "com.hcllmsx.videoqptool",
+    "productName": "VideoQPTool",
+    "directories": {
+      "output": "dist-electron"
+    },
+    "files": [
+      "electron-main.js",
+      "server.js",
+      "public/**/*",
+      "VERSION",
+      "package.json",
+      "!**/*.map",
+      "!**/*.md"
     ],
-    "outputPath": "dist"
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ],
+      "icon": "videoqptool.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "include": "installer.nsh",
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "VideoQPTool",
+      "artifactName": "VideoQPTool-安装版-v${version}-Setup.${ext}"
+    },
+    "portable": {
+      "artifactName": "VideoQPTool-便携版-v${version}.${ext}"
+    }
   },
   "dependencies": {
     "express": "^4.18.2",
@@ -21,8 +51,8 @@
     "uuid": "^9.0.0"
   },
   "devDependencies": {
-    "pkg": "^5.8.1",
-    "rcedit": "^5.0.2"
+    "electron": "^28.3.3",
+    "electron-builder": "^24.13.3"
   },
   "author": "hcllmsx",
   "license": "MIT"

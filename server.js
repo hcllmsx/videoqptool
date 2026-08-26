@@ -2,14 +2,64 @@ const express = require('express');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const os = require('os');
 const { spawn, execSync } = require('child_process');
 const { v4: uuidv4 } = require('uuid');
 
 const app = express();
 const PORT = process.env.PORT || 13838;
 
+// ── 运行环境识别 ──────────────────────────────────────
+// IS_ELECTRON: 运行在 Electron 桌面壳中（Electron 主进程直接 require 本文件）
+const IS_ELECTRON = !!(process.versions && process.versions.electron);
+
+// ── 无窗口(GUI)模式适配 ──────────────────────────────
+// 打包后的 exe 是 GUI 子系统程序（双击不出现黑色终端窗口）。
+// 此时 stdout/stderr 没有有效句柄，直接写入可能抛出未捕获异常，
+// 因此检测到无控制台时屏蔽控制台输出，关键错误改用系统 MessageBox 弹窗。
+const IS_GUI_MODE = process.platform === 'win32' && !process.stdout.isTTY;
+if (IS_GUI_MODE) {
+    const noop = () => { };
+    console.log = noop;
+    console.error = noop;
+    console.warn = noop;
+    console.info = noop;
+}
+
+// Windows 下用系统 MessageBox 弹窗（无窗口模式提示关键错误用）
+function showMessageBox(title, text) {
+    if (process.platform !== 'win32') return;
+    try {
+        const safe = s => String(s).replace(/'/g, "''").replace(/\r?\n/g, ' ');
+        const ps = `Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.MessageBox]::Show('${safe(text)}','${safe(title)}','OK','Information')`;
+        execSync(`powershell -NoProfile -NonInteractive -WindowStyle Hidden -Command "${ps.replace(/"/g, '\\"')}"`, { stdio: 'ignore', timeout: 15000, windowsHide: true });
+    } catch (e) { }
+}
+
 // ── 目录配置 ──────────────────────────────────────────
-const BASE_DIR = process.pkg ? path.dirname(process.execPath) : __dirname;
+// 程序所在目录（Electron 打包后为 asar 内路径；ffmpeg 查找会依次走 resources/PATH）
+const EXE_DIR = __dirname;
+
+// 数据目录：优先 exe 同目录（便携模式）；若 exe 目录不可写
+// （例如安装到了 Program Files），则回退到用户数据目录，避免写入失败。
+function resolveWritableDir(exeDir) {
+    try {
+        const probe = path.join(exeDir, '.write-test');
+        fs.writeFileSync(probe, '');
+        fs.unlinkSync(probe);
+        return exeDir;
+    } catch (e) {
+        const dataDir = process.env.LOCALAPPDATA || process.env.APPDATA || path.join(os.homedir(), 'AppData', 'Local');
+        const dir = path.join(dataDir, 'VideoQPTool');
+        fs.mkdirSync(dir, { recursive: true });
+        return dir;
+    }
+}
+
+// Electron 模式下数据目录由主进程通过环境变量指定（即 userData，一定可写）
+const BASE_DIR = process.env.VIDEOQPTOOL_DATA_DIR
+    ? process.env.VIDEOQPTOOL_DATA_DIR
+    : resolveWritableDir(EXE_DIR);
 const UPLOADS_DIR = path.join(BASE_DIR, 'uploads');
 const OUTPUT_DIR = path.join(BASE_DIR, 'output');
 
@@ -18,15 +68,8 @@ const OUTPUT_DIR = path.join(BASE_DIR, 'output');
 });
 
 // ── 静态文件 ──────────────────────────────────────────
-const PUBLIC_DIR = process.pkg
-    ? path.join(path.dirname(process.execPath), 'public')
-    : path.join(__dirname, 'public');
-
-// 如果打包模式下 public 目录不存在，从快照中复制
-if (process.pkg && !fs.existsSync(PUBLIC_DIR)) {
-    const snapshotPublic = path.join(__dirname, 'public');
-    copyDirSync(snapshotPublic, PUBLIC_DIR);
-}
+// 开发模式直接读项目 public；Electron 打包后 __dirname 位于 asar 内，express 可正常读取
+const PUBLIC_DIR = path.join(__dirname, 'public');
 
 app.use(express.static(PUBLIC_DIR));
 app.use(express.json());
@@ -137,7 +180,8 @@ function processQueue() {
 
         const ffmpeg = spawn(FFMPEG_PATH, item.args, {
             cwd: task.outputDir,
-            stdio: ['ignore', 'pipe', 'pipe']
+            stdio: ['ignore', 'pipe', 'pipe'],
+            windowsHide: true // 无窗口模式下禁止 ffmpeg 弹出黑色控制台窗口
         });
         task.process = ffmpeg; // 保存进程引用以便终止
         let stderrData = '';
@@ -192,7 +236,7 @@ function processQueue() {
 // ── 检测 ffmpeg ──────────────────────────────────────
 function getFfmpegVersion(ffmpegPath) {
     try {
-        const output = execSync(`"${ffmpegPath}" -version`, { encoding: 'utf8' });
+        const output = execSync(`"${ffmpegPath}" -version`, { encoding: 'utf8', windowsHide: true });
         const firstLine = output.split('\n')[0];
         const match = firstLine.match(/version\s+([^\s,]+)/i);
         return match ? match[1] : 'unknown';
@@ -204,27 +248,43 @@ function getFfmpegVersion(ffmpegPath) {
 function findFfmpeg() {
     let foundPath = null;
 
-    // 1. 同目录下的 ffmpeg.exe
-    const localFfmpeg = path.join(BASE_DIR, 'ffmpeg.exe');
+    // 1. exe 同目录下的 ffmpeg.exe
+    const localFfmpeg = path.join(EXE_DIR, 'ffmpeg.exe');
     if (fs.existsSync(localFfmpeg)) {
         foundPath = localFfmpeg;
     } else {
-        // 2. 同目录 ffmpeg 文件夹中
-        const subFfmpeg = path.join(BASE_DIR, 'ffmpeg', 'ffmpeg.exe');
+        // 2. exe 同目录 ffmpeg 文件夹中
+        const subFfmpeg = path.join(EXE_DIR, 'ffmpeg', 'ffmpeg.exe');
         if (fs.existsSync(subFfmpeg)) {
             foundPath = subFfmpeg;
         } else {
-            // 3. 同目录 ffmpeg/bin 文件夹中
-            const binFfmpeg = path.join(BASE_DIR, 'ffmpeg', 'bin', 'ffmpeg.exe');
+            // 3. exe 同目录 ffmpeg/bin 文件夹中
+            const binFfmpeg = path.join(EXE_DIR, 'ffmpeg', 'bin', 'ffmpeg.exe');
             if (fs.existsSync(binFfmpeg)) {
                 foundPath = binFfmpeg;
             } else {
-                // 4. 系统 PATH 中
-                try {
-                    execSync('ffmpeg -version', { stdio: 'ignore' });
-                    foundPath = 'ffmpeg';
-                } catch {
-                    foundPath = null;
+                // 4. 数据目录（安装版 Program Files 不可写时的备选位置）
+                const dataFfmpeg = path.join(BASE_DIR, 'ffmpeg', 'bin', 'ffmpeg.exe');
+                if (fs.existsSync(dataFfmpeg)) {
+                    foundPath = dataFfmpeg;
+                } else {
+                    // 5. Electron 资源目录（electron-builder extraResources 放置处）
+                    let resourcesFfmpeg = '';
+                    if (process.resourcesPath) {
+                        const r = path.join(process.resourcesPath, 'ffmpeg', 'bin', 'ffmpeg.exe');
+                        if (fs.existsSync(r)) resourcesFfmpeg = r;
+                    }
+                    if (resourcesFfmpeg) {
+                        foundPath = resourcesFfmpeg;
+                    } else {
+                        // 6. 系统 PATH 中
+                        try {
+                            execSync('ffmpeg -version', { stdio: 'ignore', windowsHide: true });
+                            foundPath = 'ffmpeg';
+                        } catch {
+                            foundPath = null;
+                        }
+                    }
                 }
             }
         }
@@ -481,7 +541,7 @@ app.post('/api/open-folder', (req, res) => {
             : process.platform === 'darwin'
                 ? `open "${folderPath}"`
                 : `xdg-open "${folderPath}"`;
-        execSync(command);
+        execSync(command, { windowsHide: true });
         res.json({ success: true });
     } catch (err) {
         res.status(500).json({ error: '无法打开目录: ' + err.message });
@@ -553,9 +613,9 @@ app.post('/api/shutdown', (req, res) => {
 
     try {
         if (process.platform === 'win32') {
-            exec('shutdown /s /t 30');
+            exec('shutdown /s /t 30', { windowsHide: true });
         } else if (process.platform === 'darwin' || process.platform === 'linux') {
-            exec('shutdown +1');
+            exec('shutdown +1', { windowsHide: true });
         }
         res.json({ success: true, message: '已执行自动关机指令' });
     } catch (err) {
@@ -568,9 +628,9 @@ app.post('/api/cancel-shutdown', (req, res) => {
     const { exec } = require('child_process');
     try {
         if (process.platform === 'win32') {
-            exec('shutdown /a');
+            exec('shutdown /a', { windowsHide: true });
         } else if (process.platform === 'darwin' || process.platform === 'linux') {
-            exec('shutdown -c');
+            exec('shutdown -c', { windowsHide: true });
         }
         res.json({ success: true, message: '已取消关机' });
     } catch (err) {
@@ -828,7 +888,7 @@ function getDuration(filePath) {
         try {
             const result = execSync(
                 `"${ffprobePath}" -v quiet -print_format json -show_format "${filePath}"`,
-                { encoding: 'utf8', timeout: 10000 }
+                { encoding: 'utf8', timeout: 10000, windowsHide: true }
             );
             const info = JSON.parse(result);
             resolve(parseFloat(info.format?.duration) || 0);
@@ -838,30 +898,26 @@ function getDuration(filePath) {
     });
 }
 
-function copyDirSync(src, dest) {
-    if (!fs.existsSync(src)) return;
-    fs.mkdirSync(dest, { recursive: true });
-    const entries = fs.readdirSync(src, { withFileTypes: true });
-    for (const entry of entries) {
-        const srcPath = path.join(src, entry.name);
-        const destPath = path.join(dest, entry.name);
-        if (entry.isDirectory()) {
-            copyDirSync(srcPath, destPath);
-        } else {
-            fs.copyFileSync(srcPath, destPath);
-        }
-    }
+// ── 启动服务 ──────────────────────────────────────────
+// 版本号以根目录 VERSION 文件为准（构建前由 scripts/sync-version.js 同步到 package.json）
+let APP_VERSION = '';
+try {
+    APP_VERSION = fs.readFileSync(path.join(__dirname, 'VERSION'), 'utf8').trim() || require('./package.json').version;
+} catch (e) {
+    APP_VERSION = require('./package.json').version;
 }
 
-// ── 启动服务 ──────────────────────────────────────────
-const PKG_VERSION = require('./package.json').version;
+// 供前端页面展示版本号（以 VERSION 文件为准）
+app.get('/api/version', (req, res) => {
+    res.json({ version: APP_VERSION });
+});
 
 const server = app.listen(PORT, () => {
     // 设置命令行窗口标题
     process.title = 'VideoQPTool';
-    process.stdout.write(`\x1b]0;VideoQPTool v${PKG_VERSION}\x07`);
+    try { process.stdout.write(`\x1b]0;VideoQPTool v${APP_VERSION}\x07`); } catch (e) { }
 
-    const title = `VideoQPTool v${PKG_VERSION} - 视频转HLS工具`;
+    const title = `VideoQPTool v${APP_VERSION} - 视频转HLS工具`;
     // 计算显示宽度（中文字符占2列）
     let tw = 0;
     for (const ch of title) tw += (ch.charCodeAt(0) > 0x7F ? 2 : 1);
@@ -885,32 +941,40 @@ const server = app.listen(PORT, () => {
     console.log('  ⚠️  按Ctrl+C可退出服务，关闭此窗口后也会退出服务');
     console.log('');
 
-    // 自动打开浏览器
-    try {
-        const url = `http://localhost:${PORT}`;
-        const startCmd = process.platform === 'win32' ? 'start' : process.platform === 'darwin' ? 'open' : 'xdg-open';
-        require('child_process').exec(`${startCmd} ${url}`);
-    } catch (err) {
-        // 忽略打开失败的错误
+    // 自动打开浏览器（Electron 桌面壳中不打开，由窗口直接加载页面）
+    if (!IS_ELECTRON && !process.env.VIDEOQPTOOL_NO_BROWSER) {
+        try {
+            const url = `http://localhost:${PORT}`;
+            const startCmd = process.platform === 'win32' ? 'start' : process.platform === 'darwin' ? 'open' : 'xdg-open';
+            require('child_process').exec(`${startCmd} ${url}`, { windowsHide: true });
+        } catch (err) {
+            // 忽略打开失败的错误
+        }
     }
 });
 
 server.on('error', (err) => {
     if (err.code === 'EADDRINUSE') {
-        console.error(`\n❌ 端口 ${PORT} 已被占用！\n请检查是否已经打开了一个 VideoQPTool 服务，或者在任务管理器中结束 Node 进程。`);
+        const msg = `端口 ${PORT} 已被占用！\n请检查是否已经打开了一个 VideoQPTool 服务，或在任务管理器中结束相关进程。`;
+        console.error('\n❌ ' + msg);
+        if (IS_GUI_MODE || IS_ELECTRON) { showMessageBox('VideoQPTool 启动失败', msg); process.exit(1); return; }
     } else {
-        console.error('\n❌ 启动服务失败:', err);
+        const msg = '启动服务失败: ' + (err.message || err);
+        console.error('\n❌ ' + msg);
+        if (IS_GUI_MODE || IS_ELECTRON) { showMessageBox('VideoQPTool 启动失败', msg); process.exit(1); return; }
     }
     console.log('\n按任意键退出...');
-    if (process.stdin.setRawMode) process.stdin.setRawMode(true);
-    process.stdin.resume();
+    try { if (process.stdin.setRawMode) process.stdin.setRawMode(true); } catch (e) { }
+    try { process.stdin.resume(); } catch (e) { }
     process.stdin.on('data', process.exit.bind(process, 1));
 });
 
 process.on('uncaughtException', (err) => {
-    console.error('\n❌ 发生未捕获的错误:', err);
+    const msg = '发生未捕获的错误: ' + (err && err.message);
+    console.error('\n❌ ' + msg);
+    if (IS_GUI_MODE || IS_ELECTRON) { showMessageBox('VideoQPTool 错误', msg); process.exit(1); return; }
     console.log('\n按任意键退出...');
-    if (process.stdin.setRawMode) process.stdin.setRawMode(true);
-    process.stdin.resume();
+    try { if (process.stdin.setRawMode) process.stdin.setRawMode(true); } catch (e) { }
+    try { process.stdin.resume(); } catch (e) { }
     process.stdin.on('data', process.exit.bind(process, 1));
 });

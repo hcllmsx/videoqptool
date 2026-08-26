@@ -99,6 +99,19 @@
         setupPresets();
         setupSettings();
         loadTasks();
+        loadVersion();
+    }
+
+    // ── 版本号展示（以根目录 VERSION 文件为准）────────
+    async function loadVersion() {
+        try {
+            const res = await fetch('/api/version');
+            const data = await res.json();
+            if (data && data.version) {
+                const span = document.querySelector('.version-badge span');
+                if (span) span.textContent = data.version;
+            }
+        } catch (e) { /* 接口不可用时保持默认显示，忽略 */ }
     }
 
     // ── 检查 ffmpeg ──────────────────────────

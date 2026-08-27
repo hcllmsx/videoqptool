@@ -123,16 +123,14 @@
             const text = ffmpegStatus.querySelector('.status-text');
 
             ffmpegStatus.onclick = () => {
-                if (!data.ffmpegAvailable) {
-                    showFfmpegHelp();
-                }
+                showFfmpegHelp(data.ffmpegAvailable, data.ffmpegPath, data.ffmpegVersion);
             };
 
             if (data.ffmpegAvailable) {
                 dot.classList.add('active');
                 text.textContent = `ffmpeg 就绪 (${data.ffmpegVersion})`;
-                ffmpegStatus.style.cursor = 'default';
-                ffmpegStatus.title = `路径: ${data.ffmpegPath}`;
+                ffmpegStatus.classList.add('clickable-ready');
+                ffmpegStatus.title = 'ffmpeg 就绪，点击查看下载/更新指引';
             } else {
                 dot.classList.add('error');
                 text.textContent = 'ffmpeg 未找到 (点击查看解决方案)';
@@ -148,21 +146,26 @@
         }
     }
 
-    function showFfmpegHelp() {
+    function showFfmpegHelp(available = false, ffmpegPath = '', ffmpegVersion = '') {
         // 创建一个简单的弹窗显示解决方案
+        const isOk = !!available;
+        const title = isOk ? 'FFmpeg 下载与更新指南' : 'FFmpeg 未找到解决方案';
+        const intro = isOk
+            ? `<p style="margin-bottom: 1.5rem;">当前已就绪：<code>${ffmpegVersion}</code><br>路径：<code>${ffmpegPath}</code><br>如需检查 FFmpeg 是否有新版本、或想重新配置，可参考下方指引：</p>`
+            : `<p style="margin-bottom: 1.5rem;">本程序运行需要 <strong>FFmpeg</strong>。请下载 Windows 版本的可执行文件并配置：</p>`;
         const helpOverlay = document.createElement('div');
         helpOverlay.className = 'modal-overlay';
         helpOverlay.style.zIndex = '2000'; // 确保在普通弹窗之上
         helpOverlay.innerHTML = `
             <div class="modal help-modal">
                 <div class="modal-header">
-                    <h3 style="margin: 0; font-size: 1.2rem;">FFmpeg 未找到解决方案</h3>
+                    <h3 style="margin: 0; font-size: 1.2rem;">${title}</h3>
                     <button class="modal-close">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                     </button>
                 </div>
                 <div class="modal-body" style="padding: 1.5rem 0;">
-                    <p style="margin-bottom: 1.5rem;">本程序运行需要 <strong>FFmpeg</strong>。请下载 Windows 版本的可执行文件并配置：</p>
+                    ${intro}
                     
                     <div style="background: rgba(99, 102, 241, 0.05); border: 1px solid rgba(99, 102, 241, 0.2); border-radius: 8px; padding: 1.25rem; margin-bottom: 1.5rem;">
                         <h4 style="margin: 0 0 0.75rem 0; color: var(--accent-light); font-size: 1rem; display: flex; align-items: center; gap: 8px;">
@@ -185,8 +188,9 @@
                     </div>
 
                     <ul style="list-style: none; margin-left: 0; margin-bottom: 1.5rem; line-height: 1.8; color: var(--text-primary); padding-left: 0.5rem;">
+                        <li><strong>查看当前路径：</strong> 在终端执行 <code>where.exe ffmpeg</code>（PowerShell 也可用 <code>Get-Command ffmpeg</code>），即可看到 ffmpeg 的完整路径；有输出说明已在系统 PATH 中，无输出则说明未安装。</li>
                         <li><strong>方法1：安装到系统：</strong> 将 FFmpeg 的 <code>bin</code> 目录添加到系统的 <strong>PATH</strong> 环境变量中。</li>
-                        <li><strong>方法2：放置到程序目录：</strong> 解压后找到 <code>bin</code> 文件夹里的 <code>ffmpeg.exe</code>，直接复制粘贴到本程序的根目录下。</li>
+                        <li><strong>方法2：放置到程序目录：</strong> 解压后找到 <code>bin</code> 文件夹里的 <code>ffmpeg.exe</code>，放到本程序 exe 同目录的 <code>ffmpeg\bin</code> 文件夹下（便携版/安装版的数据目录即 exe 所在目录）。</li>
                     </ul>
 
                     <p style="color: var(--text-muted); font-size: 0.85rem; text-align: center;">说明：<a href="https://ffmpeg.org/download.html" target="_blank" style="color: var(--text-muted); text-decoration: underline;">FFmpeg 官网</a> 仅提供源代码，Windows 用户请使用上述编译版。</p>

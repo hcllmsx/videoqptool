@@ -1306,6 +1306,16 @@ body::before {
     filter: brightness(1.2);
 }
 
+.clickable-ready {
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.clickable-ready:hover {
+    color: var(--accent-light);
+    filter: brightness(1.15);
+}
+
 /* 针对帮助弹窗的微调 */
 .help-modal {
     display: flex;

@@ -1,6 +1,6 @@
 {
   "name": "videoqptool",
-  "version": "26.8.26",
+  "version": "26.8.27",
   "description": "视频转HLS(m3u8+ts)工具 - 使用本地ffmpeg进行视频转换",
   "main": "electron-main.js",
   "scripts": {
